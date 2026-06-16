@@ -1,0 +1,25 @@
+{
+  "title": "MiniMax-M3 MI355/gfx950 mxfp8 tp8",
+  "output": "/home/niding/m3_4k_vs_100k.xlsx",
+  "detail": true,
+  "_doc": "Each dataset gives a phase + (preferred) stage_trace and (fallback) combined_trace. The skill uses the by_stage file if it exists, else slices the combined trace by phase. display sets the clean column name; label stays unique.",
+  "datasets": [
+    {"label": "4k_pre",  "display": "4k",  "phase": "prefill", "model": "minimax-m3", "framework": "sglang", "gpu": "MI355",
+     "stage_trace":    "/home/niding/minimax-m3/traces/m3_stage_ctx4000-*-TP-0-EXTEND.trace.json.gz",
+     "combined_trace": "/home/niding/minimax-m3/traces/m3_4000in_32out-*-TP-0.trace.json.gz"},
+    {"label": "100k_pre", "display": "100k", "phase": "prefill", "model": "minimax-m3", "framework": "sglang", "gpu": "MI355",
+     "stage_trace":    "/home/niding/minimax-m3/traces/m3_stage_ctx100000-*-TP-0-EXTEND.trace.json.gz",
+     "combined_trace": "/home/niding/minimax-m3/traces/m3_100k_in_32out-*-TP-0.trace.json.gz"},
+
+    {"label": "4k_dec",  "display": "4k",  "phase": "decode", "model": "minimax-m3", "framework": "sglang", "gpu": "MI355",
+     "stage_trace":    "/home/niding/minimax-m3/traces/m3_bystage_ctx4000-*-TP-0.trace.json.gz",
+     "combined_trace": "/home/niding/minimax-m3/traces/m3_4000in_32out-*-TP-0.trace.json.gz"},
+    {"label": "100k_dec", "display": "100k", "phase": "decode", "model": "minimax-m3", "framework": "sglang", "gpu": "MI355",
+     "stage_trace":    "/home/niding/minimax-m3/traces/m3_bystage_ctx100000-*-TP-0.trace.json.gz",
+     "combined_trace": "/home/niding/minimax-m3/traces/m3_100k_in_32out-*-TP-0.trace.json.gz"}
+  ],
+  "sheets": [
+    {"title": "prefill", "compare": ["4k_pre", "100k_pre"], "note": "TOTAL prompt, rank0 GPU-busy ms"},
+    {"title": "decode",  "compare": ["4k_dec", "100k_dec"], "note": "per-step (~1 CUDA-graph step); decode via profile_by_stage when available"}
+  ]
+}
