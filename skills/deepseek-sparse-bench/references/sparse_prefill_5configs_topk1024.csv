@@ -1,0 +1,6 @@
+NumOfTokens,num_attention_head,num_kv_head,q_lora_rank,topk,sparse_latency_ms,sparse_TFLOPS,full_latency_ms,sparse_vs_full
+1024,128,1,1536,1024,0.227,605,0.075,full 3.0x faster
+4096,128,1,1536,1024,1.162,828,0.369,full 3.1x faster
+16384,128,1,1536,1024,4.625,921,2.550,full 1.8x faster
+65536,128,1,1536,1024,19.490,896,29.956,sparse 1.54x faster
+262144,128,1,1536,1024,78.442,895,447.879,sparse 5.71x faster
