@@ -1,0 +1,31 @@
+# light-trace / agent-bench prefill workload for M3 pure-prefill trace capture.
+# ISL ~75k = 67.5k shared prefix (cache hit) + 7.5k unique tail (real prefill),
+# OSL=1, con20 saturated (offered qps >> capacity; backpressure via max_inflight=20),
+# seed 42. Single global shared prefix (light-trace native; NOT 64x16 groups).
+workload:
+  system_prompt_len:     25200      # -> ~67.5k actual tokens, shared, cache-resident
+  initial_prefix_mean:   3650       # unique = (initial_prefix + new_tokens)*1.025 ~= 7.5k
+  initial_prefix_median: 3650
+  new_tokens_mean:       3650
+  new_tokens_median:     3650
+  max_prompt_tokens:     90000
+
+  new_session_rate:      1.0        # every request: shared system (hit) + unique tail (miss)
+  session_decay_lambda:  0.005
+  initial_sessions:      20
+
+  generation_length_mean:   1       # OSL=1
+  generation_length_median: 1
+
+  initial_qps:      50.0            # saturate
+  max_qps:          50.0
+  ramp_duration:    30
+  sustain_duration: 300
+  max_inflight:     20              # con=20
+  poisson:          true
+  poisson_shape:    3
+
+  tokenizer: /projects/models/MiniMax-M3-MXFP8
+  gpus:      4                      # informational; overridden by --gpus on the CLI
+  window:    30
+  random_seed: 42
