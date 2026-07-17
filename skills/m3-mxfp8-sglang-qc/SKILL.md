@@ -18,7 +18,7 @@ Bundled scripts (in `scripts/`):
 - SGLang installed **editable** (`pip show sglang` → "Editable project location"); branch supporting `minimax_m3_vl`.
 - aiter present under `/sgl-workspace/aiter` (JIT-compiled kernels).
 - `MiniMax-Provider-Verifier` checkout (has `verify.py`, `sample.jsonl` 102 samples, `m3_format_check/m3_text_tests.py` 150 cases).
-- Deps: `pip install pytest pytest-xdist pytest-timeout httpx jsonschema loguru megfile tqdm`.
+- Deps: `pip install pytest pytest-xdist pytest-timeout httpx jsonschema loguru megfile tqdm`. **For video Format tests also `pip install decord`** (see §4 multimodal).
 - GPUs free (check `rocm-smi --showmemuse`); pick idle cards.
 
 ## 1. Pre-flight (do these BEFORE launching — they are the top failure causes)
@@ -88,6 +88,21 @@ M3_RUN_LOG=/path/qc/raw/format_text_run.jsonl \
 python3 -m pytest m3_text_tests.py -n 4 -v --junitxml=/path/qc/raw/format_text_junit.xml
 ```
 Note `-n 8` is faster but higher crash risk; if the server dies near the end, in-flight tests get false ConnectionError failures — re-run just the failed node ids in isolation to separate real vs transient.
+
+**Format Correctness (multimodal)** — image `m3_image_tests.py` (100 cases) and video `m3_video_tests.py` (86 cases), same `-n 2 --timeout=300` pattern:
+```bash
+cd $VERIFIER/m3_format_check
+python3 -m pytest m3_image_tests.py -n 2 -v --timeout=300 --junitxml=/path/qc/raw/image_junit.xml
+python3 -m pytest m3_video_tests.py -n 2 -v --timeout=300 --junitxml=/path/qc/raw/video_junit.xml
+```
+- 🔴 **Video needs `pip install decord`** — without it every video request → HTTP 500 `No module named 'decord'` (M3's video loader uses decord, NOT torchcodec/ffmpeg; decord's wheel is self-contained). Install it, then video decodes with **no server restart** (lazy import). Image needs nothing extra.
+- **Vision DOES work on ROCm/gfx950** (accurate image+video understanding, `video_tokens` in usage) despite the cookbook's "vision unvalidated on ROCm" note. On AMD **omit `--mm-attention-backend`** (let the encoder use the ROCm default).
+- Use `-n 2` (not 4): multimodal load hits the §6.2 aiter/MXFP8 `HIP error: unspecified launch failure` crash more readily — the full 100-image run crashed the upstream server once. If it dies, restart and re-run remaining node ids (image/video results are deterministic per-case).
+- **Known multimodal gaps** (both upstream & fork, engine-side, NOT launch-param-fixable):
+  - image `detail` resolution-tier (`10_*`, ~14): schema rejects `detail: low/default/high` tier values → 400.
+  - image base64 edge (`09_03` corrupted, `13_01` linebreaks, `13_02` no-padding, ~4): unhandled exception → **500 instead of graceful 400**.
+  - video: long-video (5/10/20min) decode timeouts, multi-video/size-limit, `reasoning_split`, fps range — mix of engine gaps + timeouts.
+- **URL-fetch tests are environmental**: the image/video loader has a **hardcoded `read timeout=3s`**; slow external CDNs (e.g. myqcloud Shanghai for the 9-51MB fixtures) time out → 500. These PASS on retry when the fetch is fast — classify as transient, not engine gaps.
 
 ## 4a. 🔧 Launch-param ↔ test-item matrix (配错参数 = 假失败;先按此配全再判断)
 Set these on the **server launch** BEFORE running Format Check, or the listed items fail for config reasons (not real gaps). Verified 2026-07 on MI355X, upstream 0.5.15 AND the ATOM fork — behavior identical.
